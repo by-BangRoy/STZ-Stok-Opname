@@ -9,8 +9,7 @@ import {
   AlertCircle, 
   CheckCircle2,
   Package,
-  Sparkles,
-  RotateCcw
+  Sparkles
 } from 'lucide-react';
 
 interface StockMutationModalProps {
@@ -97,17 +96,6 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
     }
   };
 
-  // Preset button shortcuts
-  const handleSetLusinPreset = (lusinAmount: number) => {
-    setQuantityLusin(String(lusinAmount));
-    setQuantityPcs(String(lusinAmount * 12));
-  };
-
-  const handleClear = () => {
-    setQuantityLusin('');
-    setQuantityPcs('');
-  };
-
   // Compute preview of new stock
   const numericQty = quantityPcs === '' ? 0 : parseInt(quantityPcs, 10) || 0;
   let computedNewStock = currentStock;
@@ -184,7 +172,7 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
                 Catat Mutasi Stok Pakaian
               </h3>
               <p className="text-xs text-slate-500">
-                Input manual satuan Lusin atau Pcs dengan update otomatis real-time
+                Satuan Lusin atau Pcs dengan update otomatis real-time
               </p>
             </div>
           </div>
@@ -304,7 +292,7 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
             </div>
           )}
 
-          {/* Dual Inputs: Kolom Satuan Lusin (Kosongan & Manual) & Kolom Pcs (Sinkron Otomatis) */}
+          {/* Dual Inputs: Lusin (Kosongan) & Kolom Pcs (Sinkron Otomatis) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="block font-bold text-slate-800 dark:text-slate-200">
@@ -312,19 +300,16 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
               </label>
               <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-emerald-600" />
-                <span>Otomatis Sinkron: 1 Lusin = 12 Pcs</span>
+                <span>Otomatis Sinkron</span>
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Kolom Satuan Lusin Kosongan - Bisa Input Manual */}
+              {/* Kolom Lusin Kosongan */}
               <div className="p-3 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700/80 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[11px] font-bold text-amber-950 dark:text-amber-200 flex items-center gap-1.5">
-                    <span>Kolom Satuan Lusin</span>
-                    <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-amber-200/90 dark:bg-amber-900/80 text-amber-900 dark:text-amber-100">
-                      Input Manual
-                    </span>
+                    <span>Lusin</span>
                   </span>
                   <span className="text-[10px] font-mono font-bold text-amber-800 dark:text-amber-300">
                     Lusin
@@ -344,11 +329,10 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
                       ? `≈ ${Math.round(parseFloat(quantityLusin) * 12)} Pcs`
                       : 'Bisa angka bulat / desimal'}
                   </span>
-                  <span className="font-mono text-[9px]">1 Lsn = 12 Pcs</span>
                 </div>
               </div>
 
-              {/* Kolom Jumlah Pcs - Otomatis Terupdate & Bisa Input Manual */}
+              {/* Kolom Jumlah Pcs - Otomatis Terupdate */}
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
@@ -378,30 +362,6 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
                   <span className="font-mono text-[9px]">Pcs</span>
                 </div>
               </div>
-            </div>
-
-            {/* Quick Lusin Presets */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              <span className="text-[10px] text-slate-400 font-medium mr-1">Tombol Cepat:</span>
-              {[1, 2, 5, 10].map((lsn) => (
-                <button
-                  key={lsn}
-                  type="button"
-                  onClick={() => handleSetLusinPreset(lsn)}
-                  className="px-2.5 py-1 rounded-lg bg-amber-100/80 hover:bg-amber-200 text-amber-950 dark:bg-amber-950/70 dark:hover:bg-amber-900 dark:text-amber-200 text-[10px] font-mono font-bold transition-colors cursor-pointer border border-amber-300/60 dark:border-amber-800"
-                >
-                  +{lsn} Lsn ({lsn * 12} Pcs)
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={handleClear}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-400 text-[10px] font-semibold transition-colors cursor-pointer ml-auto"
-                title="Kosongkan kolom lusin dan pcs"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>Kosongkan</span>
-              </button>
             </div>
           </div>
 

@@ -95,7 +95,7 @@ export function exportRecapToCsv(transactions: StockTransaction[], storeName = '
     'Warna',
     'Ukuran',
     'Jumlah (Pcs)',
-    'Satuan Lusin',
+    'Lusin',
     'Stok Sebelumnya',
     'Stok Akhir',
     'Pihak Terkait / Customer / Supplier',

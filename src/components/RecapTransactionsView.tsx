@@ -13,7 +13,6 @@ import {
   Sparkles,
   CheckCircle2,
   AlertCircle,
-  RotateCcw,
   Zap
 } from 'lucide-react';
 
@@ -354,11 +353,10 @@ export const RecapTransactionsView: React.FC<RecapTransactionsViewProps> = ({
               </div>
             </div>
 
-            {/* Kolom Satuan Lusin (Kosongan - Manual) */}
+            {/* Kolom Lusin (Kosongan) */}
             <div className="sm:col-span-2">
-              <label className="block text-[10px] font-bold text-amber-900 dark:text-amber-200 mb-1 flex items-center justify-between">
-                <span>Kolom Lusin</span>
-                <span className="text-[9px] font-mono text-amber-700 dark:text-amber-400">Manual</span>
+              <label className="block text-[10px] font-bold text-amber-900 dark:text-amber-200 mb-1">
+                <span>Lusin</span>
               </label>
               <input
                 type="text"
@@ -411,37 +409,6 @@ export const RecapTransactionsView: React.FC<RecapTransactionsViewProps> = ({
               </button>
             </div>
           </form>
-
-          {/* Quick Presets for Lusin in the Bar */}
-          <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-amber-200/60 dark:border-amber-900/40 text-[10px]">
-            <span className="text-slate-500 dark:text-slate-400">Pilih Cepat Lusin:</span>
-            {[1, 2, 3, 5, 10].map((lsn) => (
-              <button
-                key={lsn}
-                type="button"
-                onClick={() => {
-                  setQuickLusin(String(lsn));
-                  setQuickPcs(String(lsn * 12));
-                }}
-                className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800/80 hover:bg-amber-100 text-amber-900 dark:text-amber-200 font-mono font-bold cursor-pointer"
-              >
-                +{lsn} Lsn ({lsn * 12} Pcs)
-              </button>
-            ))}
-            {(quickLusin || quickPcs) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setQuickLusin('');
-                  setQuickPcs('');
-                }}
-                className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold cursor-pointer ml-auto"
-              >
-                <RotateCcw className="w-2.5 h-2.5" />
-                <span>Kosongkan</span>
-              </button>
-            )}
-          </div>
         </div>
       )}
 
@@ -518,7 +485,7 @@ export const RecapTransactionsView: React.FC<RecapTransactionsViewProps> = ({
                   <th className="py-3 px-4">Pakaian Terkait</th>
                   <th className="py-3 px-3 text-center">Jumlah (Pcs)</th>
                   <th className="py-3 px-3 text-center bg-amber-50/60 dark:bg-amber-950/20 text-amber-900 dark:text-amber-200 font-bold border-x border-amber-200/50 dark:border-amber-900/40">
-                    Satuan Lusin
+                    Lusin
                   </th>
                   <th className="py-3 px-4 text-center">Perubahan Stok</th>
                   <th className="py-3 px-4">Pihak / Rekanan</th>
