@@ -1,0 +1,6 @@
+{
+  "name": "STZ Fashion - Rekap Stok & Mutasi Pakaian",
+  "description": "Sistem manajemen stok pakaian, rekap mutasi barang masuk/keluar, proteksi PIN akses pribadi, dan laporan audit inventaris STZ Fashion.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
