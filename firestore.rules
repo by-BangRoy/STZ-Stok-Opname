@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner() {
+      return isVerified() && (
+        request.auth.token.email == 'halifinakungcr24@gmail.com' ||
+        (exists(/databases/$(database)/documents/settings/store) &&
+         request.auth.token.email == get(/databases/$(database)/documents/settings/store).data.ownerEmail)
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidItemData(data) {
+      return data.keys().hasAll(['id', 'name', 'color', 'size', 'currentStock']) &&
+        data.keys().hasOnly(['id', 'name', 'sku', 'category', 'color', 'size', 'currentStock', 'minStock', 'buyPrice', 'sellPrice', 'note', 'updatedAt', 'ownerEmail']) &&
+        isValidId(data.id) &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+        data.color is string && data.color.size() <= 50 &&
+        data.size is string && data.size.size() <= 50 &&
+        data.currentStock is number &&
+        (!('sku' in data) || (data.sku is string && data.sku.size() <= 100)) &&
+        (!('category' in data) || (data.category is string && data.category.size() <= 100)) &&
+        (!('minStock' in data) || data.minStock is number) &&
+        (!('buyPrice' in data) || data.buyPrice is number) &&
+        (!('sellPrice' in data) || data.sellPrice is number) &&
+        (!('note' in data) || (data.note is string && data.note.size() <= 500)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50)) &&
+        (!('ownerEmail' in data) || (data.ownerEmail is string && data.ownerEmail.size() <= 120));
+    }
+
+    function isValidTransactionData(data) {
+      return data.keys().hasAll(['id', 'itemId', 'itemName', 'type', 'quantity', 'previousStock', 'newStock', 'timestamp']) &&
+        data.keys().hasOnly(['id', 'itemId', 'itemName', 'color', 'size', 'type', 'quantity', 'previousStock', 'newStock', 'note', 'recipientOrSupplier', 'timestamp', 'ownerEmail']) &&
+        isValidId(data.id) &&
+        isValidId(data.itemId) &&
+        data.itemName is string && data.itemName.size() <= 200 &&
+        (data.type in ['IN', 'OUT', 'ADJUSTMENT']) &&
+        data.quantity is number &&
+        data.previousStock is number &&
+        data.newStock is number &&
+        data.timestamp is string && data.timestamp.size() <= 50 &&
+        (!('color' in data) || (data.color is string && data.color.size() <= 50)) &&
+        (!('size' in data) || (data.size is string && data.size.size() <= 50)) &&
+        (!('note' in data) || (data.note is string && data.note.size() <= 500)) &&
+        (!('recipientOrSupplier' in data) || (data.recipientOrSupplier is string && data.recipientOrSupplier.size() <= 200)) &&
+        (!('ownerEmail' in data) || (data.ownerEmail is string && data.ownerEmail.size() <= 120));
+    }
+
+    function isValidSettingsData(data) {
+      return data.keys().hasAll(['storeName', 'ownerEmail', 'pinCode']) &&
+        data.keys().hasOnly(['storeName', 'storeTagline', 'description', 'ownerEmail', 'phone', 'address', 'pinCode', 'isPinRequired', 'currency']) &&
+        data.storeName is string && data.storeName.size() > 0 && data.storeName.size() <= 150 &&
+        data.ownerEmail is string && data.ownerEmail.size() <= 120 &&
+        data.pinCode is string && data.pinCode.size() >= 4 && data.pinCode.size() <= 8 &&
+        (!('storeTagline' in data) || (data.storeTagline is string && data.storeTagline.size() <= 250)) &&
+        (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
+        (!('phone' in data) || (data.phone is string && data.phone.size() <= 50)) &&
+        (!('address' in data) || (data.address is string && data.address.size() <= 300)) &&
+        (!('isPinRequired' in data) || data.isPinRequired is bool) &&
+        (!('currency' in data) || (data.currency is string && data.currency.size() <= 10));
+    }
+
+    // Items Collection (Inventaris Stok Pakaian)
+    match /items/{itemId} {
+      allow get, list: if isOwner();
+      allow create: if isOwner() && isValidId(itemId) && isValidItemData(request.resource.data) && request.resource.data.id == itemId;
+      allow update: if isOwner() && isValidId(itemId) && isValidItemData(request.resource.data) && request.resource.data.id == itemId;
+      allow delete: if isOwner() && isValidId(itemId);
+    }
+
+    // Transactions Collection (Log Mutasi Stok: Masuk / Keluar / Penyesuaian)
+    match /transactions/{transactionId} {
+      allow get, list: if isOwner();
+      allow create: if isOwner() && isValidId(transactionId) && isValidTransactionData(request.resource.data) && request.resource.data.id == transactionId;
+      allow update: if false; // Audit immutability
+      allow delete: if isOwner() && isValidId(transactionId);
+    }
+
+    // Store Settings
+    match /settings/store {
+      allow get: if isOwner();
+      allow list: if false;
+      allow create, update: if isOwner() && isValidSettingsData(request.resource.data);
+      allow delete: if false;
+    }
+  }
+}

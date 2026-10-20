@@ -404,13 +404,27 @@ export const StoreSettingsModal: React.FC<StoreSettingsModalProps> = ({
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-900 dark:text-white text-sm">
-                      PIN Akses Aplikasi
+                      Keamanan Akses Pemilik & PIN
                     </h4>
                     <p className="text-slate-600 dark:text-slate-400 text-xs mt-1">
-                      Kunci aplikasi dengan PIN agar data stok pakaian dan mutasi Anda tetap aman dan privat.
+                      Aplikasi ini diamankan khusus untuk pemilik (<span className="font-semibold text-amber-600 dark:text-amber-400">{ownerEmail}</span>) dengan sinkronisasi online otomatis ke Cloud Firestore.
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Cloud Sync Status Info */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-700 dark:text-slate-300">Status Database Online</span>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Aktif &amp; Tersinkronisasi
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Setiap kali Anda menambah, mengurangi, atau mencatat mutasi barang keluar/masuk, stok akan otomatis diupdate secara online ke Cloud Firestore sehingga data selalu aman dan terpusat.
+                </p>
               </div>
 
               <div>

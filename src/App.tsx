@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ClothingItem, StockTransaction, StoreSettings } from './types/inventory';
 import { 
   getStoredItems, 
@@ -26,15 +26,30 @@ import { StockMutationModal } from './components/StockMutationModal';
 import { StoreSettingsModal } from './components/StoreSettingsModal';
 import { PrintRecapSheet } from './components/PrintRecapSheet';
 import { PrivateAccessLock } from './components/PrivateAccessLock';
-import { CheckCircle2, ArrowLeftRight, X } from 'lucide-react';
+import { CheckCircle2, ArrowLeftRight, X, Radio, CloudCheck } from 'lucide-react';
+
+import { auth, testConnection, OWNER_BOOTSTRAP_EMAIL } from './firebase/config';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import {
+  subscribeOnlineItems,
+  subscribeOnlineTransactions,
+  subscribeOnlineSettings,
+  saveItemOnline,
+  deleteItemOnline,
+  saveTransactionOnline,
+  saveSettingsOnline,
+  clearAllStockOnline
+} from './services/firestoreService';
 
 export default function App() {
   const [items, setItems] = useState<ClothingItem[]>(() => getStoredItems());
   const [transactions, setTransactions] = useState<StockTransaction[]>(() => getStoredTransactions());
   const [settings, setSettings] = useState<StoreSettings>(() => getStoredSettings());
 
-  // Private Access State (Keamanan Login Wajib PIN)
+  // Private Access State (Keamanan Login Wajib PIN / Google Pemilik)
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+  const [currentOwnerEmail, setCurrentOwnerEmail] = useState<string>(OWNER_BOOTSTRAP_EMAIL);
+  const [isOnlineSyncActive, setIsOnlineSyncActive] = useState<boolean>(true);
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'recap'>('dashboard');
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -53,6 +68,86 @@ export default function App() {
 
   // Toast alert state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Test connection to Firestore on boot as mandated
+  useEffect(() => {
+    testConnection();
+  }, []);
+
+  // Track Firebase Auth state
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user && user.email) {
+        setCurrentOwnerEmail(user.email);
+      }
+    });
+    return () => unsubscribeAuth();
+  }, []);
+
+  // Online Real-time Sync listeners when unlocked
+  useEffect(() => {
+    if (!isUnlocked) return;
+
+    let unsubItems: (() => void) | undefined;
+    let unsubTransactions: (() => void) | undefined;
+    let unsubSettings: (() => void) | undefined;
+
+    try {
+      unsubItems = subscribeOnlineItems(
+        (remoteItems) => {
+          if (remoteItems.length > 0) {
+            setItems(remoteItems);
+            saveStoredItems(remoteItems);
+          } else {
+            // Remote is empty, push existing local items to cloud if any
+            const local = getStoredItems();
+            if (local.length > 0) {
+              local.forEach((item) => saveItemOnline(item, currentOwnerEmail));
+            }
+          }
+          setIsOnlineSyncActive(true);
+        },
+        () => {
+          setIsOnlineSyncActive(false);
+        }
+      );
+
+      unsubTransactions = subscribeOnlineTransactions(
+        (remoteTxs) => {
+          if (remoteTxs.length > 0) {
+            setTransactions(remoteTxs);
+            saveStoredTransactions(remoteTxs);
+          } else {
+            const localTxs = getStoredTransactions();
+            if (localTxs.length > 0) {
+              localTxs.forEach((tx) => saveTransactionOnline(tx, currentOwnerEmail));
+            }
+          }
+        },
+        () => {
+          setIsOnlineSyncActive(false);
+        }
+      );
+
+      unsubSettings = subscribeOnlineSettings(
+        (remoteSettings) => {
+          setSettings(remoteSettings);
+          saveStoredSettings(remoteSettings);
+        },
+        () => {
+          setIsOnlineSyncActive(false);
+        }
+      );
+    } catch (err) {
+      console.warn('Realtime sync listener initialization:', err);
+    }
+
+    return () => {
+      if (unsubItems) unsubItems();
+      if (unsubTransactions) unsubTransactions();
+      if (unsubSettings) unsubSettings();
+    };
+  }, [isUnlocked, currentOwnerEmail]);
 
   useEffect(() => {
     if (toastMessage) {
@@ -73,7 +168,7 @@ export default function App() {
   }, [darkMode]);
 
   // Handlers for Items
-  const handleSaveItem = (itemData: ClothingItem) => {
+  const handleSaveItem = async (itemData: ClothingItem) => {
     const isNew = !items.some((it) => it.id === itemData.id);
 
     let updatedItems: ClothingItem[];
@@ -98,8 +193,10 @@ export default function App() {
         const updatedTxs = [initialTx, ...transactions];
         setTransactions(updatedTxs);
         saveStoredTransactions(updatedTxs);
+        // Sync online transaction
+        saveTransactionOnline(initialTx, currentOwnerEmail).catch(console.error);
       }
-      setToastMessage(`Pakaian baru "${itemData.name}" berhasil didaftarkan (Stok: ${itemData.currentStock} Pcs).`);
+      setToastMessage(`Pakaian baru "${itemData.name}" berhasil didaftarkan (Stok: ${itemData.currentStock} Pcs). Tersimpan online.`);
     } else {
       // Existing item edited: check if stock was manually altered
       const existing = items.find((it) => it.id === itemData.id);
@@ -122,29 +219,38 @@ export default function App() {
         const updatedTxs = [autoTx, ...transactions];
         setTransactions(updatedTxs);
         saveStoredTransactions(updatedTxs);
-        setToastMessage(`Stok "${itemData.name}" otomatis diperbarui (${diff > 0 ? `+${diff}` : diff} Pcs).`);
+        // Sync online transaction
+        saveTransactionOnline(autoTx, currentOwnerEmail).catch(console.error);
+        setToastMessage(`Stok "${itemData.name}" otomatis diperbarui (${diff > 0 ? `+${diff}` : diff} Pcs) & tersinkronisasi online.`);
       } else {
-        setToastMessage(`Data pakaian "${itemData.name}" berhasil disimpan.`);
+        setToastMessage(`Data pakaian "${itemData.name}" berhasil disimpan online.`);
       }
       updatedItems = items.map((it) => (it.id === itemData.id ? itemData : it));
     }
 
     setItems(updatedItems);
     saveStoredItems(updatedItems);
+
+    // Save online to Firestore
+    saveItemOnline(itemData, currentOwnerEmail).catch(console.error);
   };
 
-  const handleDeleteItem = (itemId: string) => {
+  const handleDeleteItem = async (itemId: string) => {
     const target = items.find((it) => it.id === itemId);
     const updated = items.filter((it) => it.id !== itemId);
     setItems(updated);
     saveStoredItems(updated);
+
+    // Delete online from Firestore
+    deleteItemOnline(itemId).catch(console.error);
+
     if (target) {
-      setToastMessage(`Pakaian "${target.name}" (${target.color} - ${target.size}) telah dihapus.`);
+      setToastMessage(`Pakaian "${target.name}" (${target.color} - ${target.size}) telah dihapus dari cloud online.`);
     }
   };
 
   // Handlers for Stock Mutation (Modal)
-  const handleSaveMutation = (transaction: StockTransaction, updatedItem: ClothingItem) => {
+  const handleSaveMutation = async (transaction: StockTransaction, updatedItem: ClothingItem) => {
     const updatedTxs = [transaction, ...transactions];
     setTransactions(updatedTxs);
     saveStoredTransactions(updatedTxs);
@@ -153,12 +259,16 @@ export default function App() {
     setItems(updatedItems);
     saveStoredItems(updatedItems);
 
+    // Sync both transaction and updated item online to Firestore in real-time
+    saveTransactionOnline(transaction, currentOwnerEmail).catch(console.error);
+    saveItemOnline(updatedItem, currentOwnerEmail).catch(console.error);
+
     const typeLabel = transaction.type === 'IN' ? 'Barang Masuk' : transaction.type === 'OUT' ? 'Barang Keluar' : 'Koreksi Stok';
-    setToastMessage(`Mutasi ${typeLabel} berhasil: ${transaction.itemName} (${transaction.type === 'OUT' ? '-' : '+'}${transaction.quantity} Pcs). Stok kini: ${updatedItem.currentStock} Pcs.`);
+    setToastMessage(`Mutasi ${typeLabel} online berhasil: ${transaction.itemName} (${transaction.type === 'OUT' ? '-' : '+'}${transaction.quantity} Pcs). Total stok kini: ${updatedItem.currentStock} Pcs.`);
   };
 
   // Quick Inline Adjust Stock (e.g. +1, -1, +12, -12 from Inventory list/cards)
-  const handleQuickAdjustStock = (itemId: string, delta: number, note?: string) => {
+  const handleQuickAdjustStock = async (itemId: string, delta: number, note?: string) => {
     const target = items.find((it) => it.id === itemId);
     if (!target) return;
 
@@ -197,36 +307,44 @@ export default function App() {
     saveStoredItems(updatedItems);
     saveStoredTransactions(updatedTxs);
 
+    // Sync online to Firestore
+    saveItemOnline(updatedItem, currentOwnerEmail).catch(console.error);
+    saveTransactionOnline(autoTx, currentOwnerEmail).catch(console.error);
+
     setToastMessage(
-      `Otomatis update stok: ${target.name} (${target.color} - ${target.size}) ${actualDiff > 0 ? `+${actualDiff}` : actualDiff} Pcs. Total stok: ${newStock} Pcs.`
+      `Otomatis update stok online: ${target.name} (${target.color} - ${target.size}) ${actualDiff > 0 ? `+${actualDiff}` : actualDiff} Pcs. Total stok: ${newStock} Pcs.`
     );
   };
 
   // Handlers for Settings & Backup
-  const handleUpdateSettings = (newSettings: StoreSettings) => {
+  const handleUpdateSettings = async (newSettings: StoreSettings) => {
     setSettings(newSettings);
     saveStoredSettings(newSettings);
-    setToastMessage('Profil dan pengaturan berhasil disimpan.');
+    saveSettingsOnline(newSettings).catch(console.error);
+    setToastMessage('Profil dan pengaturan berhasil disimpan online ke cloud.');
   };
 
-  const handleClearAllStock = () => {
+  const handleClearAllStock = async () => {
     setItems([]);
     saveStoredItems([]);
-    setToastMessage('Semua stok pakaian telah berhasil dihapus (0 data).');
+    clearAllStockOnline().catch(console.error);
+    setToastMessage('Semua stok pakaian telah berhasil dihapus dari cloud online (0 data).');
   };
 
-  const handleClearAllTransactions = () => {
+  const handleClearAllTransactions = async () => {
     setTransactions([]);
     saveStoredTransactions([]);
-    setToastMessage('Seluruh riwayat mutasi barang telah berhasil dihapus (0 data).');
+    clearAllStockOnline().catch(console.error);
+    setToastMessage('Seluruh riwayat mutasi barang telah berhasil dihapus dari cloud (0 data).');
   };
 
-  const handleClearAllData = () => {
+  const handleClearAllData = async () => {
     setItems([]);
     setTransactions([]);
     saveStoredItems([]);
     saveStoredTransactions([]);
-    setToastMessage('Seluruh data stok pakaian dan riwayat mutasi telah dikosongkan total.');
+    clearAllStockOnline().catch(console.error);
+    setToastMessage('Seluruh data stok pakaian dan riwayat mutasi telah dikosongkan total secara online.');
   };
 
   const handleOpenEditProfileModal = () => {
@@ -250,7 +368,13 @@ export default function App() {
     saveStoredItems(newItems);
     saveStoredTransactions(newTransactions);
     saveStoredSettings(newSettings);
-    setToastMessage('Data toko berhasil disinkronkan.');
+
+    // Sync all restored items to cloud online
+    newItems.forEach((it) => saveItemOnline(it, currentOwnerEmail));
+    newTransactions.forEach((tx) => saveTransactionOnline(tx, currentOwnerEmail));
+    saveSettingsOnline(newSettings).catch(console.error);
+
+    setToastMessage('Data toko berhasil dipulihkan dan disinkronkan ke cloud online.');
   };
 
   // Quick Action Triggers
@@ -274,9 +398,13 @@ export default function App() {
   const handleLockSession = () => {
     setIsUnlocked(false);
     setSessionUnlocked(false);
+    signOut(auth).catch(() => {});
   };
 
-  const handleUnlockSession = () => {
+  const handleUnlockSession = (ownerEmail?: string) => {
+    if (ownerEmail) {
+      setCurrentOwnerEmail(ownerEmail);
+    }
     setIsUnlocked(true);
     setSessionUnlocked(true);
   };
@@ -300,14 +428,14 @@ export default function App() {
           <button
             type="button"
             onClick={() => setToastMessage(null)}
-            className="text-slate-400 hover:text-white p-0.5 shrink-0"
+            className="text-slate-400 hover:text-white p-0.5 shrink-0 cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
-      {/* Top Navigation Bar */}
+      {/* Top Navigation Bar with Online Status & Owner Access Badge */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -321,6 +449,8 @@ export default function App() {
         darkMode={darkMode}
         setDarkMode={setDarkMode}
         settings={settings}
+        isOnlineSyncActive={isOnlineSyncActive}
+        ownerEmail={currentOwnerEmail}
       />
 
       {/* Main Content Area */}
@@ -376,35 +506,15 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="no-print border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>
-            &copy; {new Date().getFullYear()} <strong>STZ Fashion</strong> · Rekap Stok Pribadi ({settings.ownerEmail || 'kesanramadhan07@gmail.com'}).
-          </p>
-          <div className="flex items-center gap-3 text-xs">
-            <button
-              onClick={handleOpenEditProfileModal}
-              className="hover:text-amber-600 dark:hover:text-amber-400 font-medium transition-colors cursor-pointer"
-            >
-              Edit Profil Toko
-            </button>
-            <span>·</span>
-            <button
-              onClick={() => handleOpenSettingsModal('data')}
-              className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer"
-            >
-              Pengaturan &amp; Hapus Data
-            </button>
-            <span>·</span>
-            <span className="font-mono">{items.length} Model Pakaian</span>
-            <span>·</span>
-            <span className="font-mono text-amber-700 dark:text-amber-400 font-semibold">Akses Pribadi Terkunci</span>
-          </div>
-        </div>
-      </footer>
+      {/* Printable Sheet for Physical Records */}
+      <div className="hidden print:block">
+        <PrintRecapSheet
+          items={items}
+          settings={settings}
+        />
+      </div>
 
-      {/* Modals */}
+      {/* Item Form Modal (Add / Edit) */}
       <ItemFormModal
         isOpen={isItemModalOpen}
         onClose={() => {
@@ -415,17 +525,19 @@ export default function App() {
         editingItem={editingItem}
       />
 
+      {/* Stock Mutation Modal (Barang Masuk / Keluar / Penyesuaian) */}
       <StockMutationModal
         isOpen={isMutationModalOpen}
         onClose={() => {
           setIsMutationModalOpen(false);
           setMutationTargetItem(null);
         }}
+        onSaveMutation={handleSaveMutation}
         items={items}
         preselectedItem={mutationTargetItem}
-        onSaveMutation={handleSaveMutation}
       />
 
+      {/* Store Settings & Data Management Modal */}
       <StoreSettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
@@ -439,9 +551,6 @@ export default function App() {
         onClearAllData={handleClearAllData}
         initialTab={settingsModalTab}
       />
-
-      {/* Dedicated Print Sheet for PDF Stock Audit Report */}
-      <PrintRecapSheet items={items} settings={settings} />
     </div>
   );
 }

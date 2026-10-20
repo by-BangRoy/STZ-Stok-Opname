@@ -1,0 +1,183 @@
+{
+  "entities": {
+    "inventoryItem": {
+      "title": "Inventory Item",
+      "description": "Fashion clothing inventory item with real-time stock counts and specifications",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the item"
+        },
+        "name": {
+          "type": "string",
+          "description": "Clothing item name"
+        },
+        "sku": {
+          "type": "string",
+          "description": "Optional SKU or code"
+        },
+        "category": {
+          "type": "string",
+          "description": "Clothing category"
+        },
+        "color": {
+          "type": "string",
+          "description": "Color variant"
+        },
+        "size": {
+          "type": "string",
+          "description": "Size variant"
+        },
+        "currentStock": {
+          "type": "number",
+          "description": "Current available quantity in stock"
+        },
+        "minStock": {
+          "type": "number",
+          "description": "Minimum stock threshold for alerts"
+        },
+        "buyPrice": {
+          "type": "number",
+          "description": "Cost or purchase price per item"
+        },
+        "sellPrice": {
+          "type": "number",
+          "description": "Selling price per item"
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional notes"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO date string of last update"
+        },
+        "ownerEmail": {
+          "type": "string",
+          "description": "Email of the store owner"
+        }
+      },
+      "required": ["id", "name", "color", "size", "currentStock"]
+    },
+    "stockTransaction": {
+      "title": "Stock Transaction",
+      "description": "Log entry of stock change: mutasi masuk, mutasi keluar, or manual adjustment",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique mutation transaction ID"
+        },
+        "itemId": {
+          "type": "string",
+          "description": "ID of the associated clothing item"
+        },
+        "itemName": {
+          "type": "string",
+          "description": "Item name at time of transaction"
+        },
+        "color": {
+          "type": "string",
+          "description": "Color of the item"
+        },
+        "size": {
+          "type": "string",
+          "description": "Size of the item"
+        },
+        "type": {
+          "type": "string",
+          "description": "Mutation type: IN, OUT, or ADJUSTMENT",
+          "enum": ["IN", "OUT", "ADJUSTMENT"]
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Quantity changed"
+        },
+        "previousStock": {
+          "type": "number",
+          "description": "Stock count before mutation"
+        },
+        "newStock": {
+          "type": "number",
+          "description": "Stock count after mutation"
+        },
+        "note": {
+          "type": "string",
+          "description": "Mutation description or reason"
+        },
+        "recipientOrSupplier": {
+          "type": "string",
+          "description": "Source supplier or destination customer"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "ISO timestamp of transaction"
+        },
+        "ownerEmail": {
+          "type": "string",
+          "description": "Email of the store owner"
+        }
+      },
+      "required": ["id", "itemId", "itemName", "type", "quantity", "previousStock", "newStock", "timestamp"]
+    },
+    "storeSettings": {
+      "title": "Store Settings",
+      "description": "Store configuration, profile details, and owner credentials",
+      "type": "object",
+      "properties": {
+        "storeName": {
+          "type": "string",
+          "description": "Store display name"
+        },
+        "storeTagline": {
+          "type": "string",
+          "description": "Store subtitle"
+        },
+        "description": {
+          "type": "string",
+          "description": "Store description"
+        },
+        "ownerEmail": {
+          "type": "string",
+          "description": "Owner Google email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Store phone number"
+        },
+        "address": {
+          "type": "string",
+          "description": "Store physical address"
+        },
+        "pinCode": {
+          "type": "string",
+          "description": "Owner access PIN code"
+        },
+        "isPinRequired": {
+          "type": "boolean",
+          "description": "Flag indicating if PIN is mandatory"
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency code"
+        }
+      },
+      "required": ["storeName", "ownerEmail", "pinCode"]
+    }
+  },
+  "firestore": {
+    "/items/{itemId}": {
+      "schema": "inventoryItem",
+      "description": "Live online inventory stock items for STZ Fashion"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "stockTransaction",
+      "description": "Live online transaction log history for all stock mutations"
+    },
+    "/settings/store": {
+      "schema": "storeSettings",
+      "description": "Live online store settings and profile configuration"
+    }
+  }
+}
