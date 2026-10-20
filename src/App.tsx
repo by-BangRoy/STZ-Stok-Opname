@@ -33,8 +33,8 @@ export default function App() {
   const [transactions, setTransactions] = useState<StockTransaction[]>(() => getStoredTransactions());
   const [settings, setSettings] = useState<StoreSettings>(() => getStoredSettings());
 
-  // Private Access State
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => getSessionUnlocked());
+  // Private Access State (Keamanan Login Wajib PIN)
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'recap'>('dashboard');
   const [darkMode, setDarkMode] = useState<boolean>(() => {
