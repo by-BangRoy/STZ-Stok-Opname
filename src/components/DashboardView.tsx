@@ -17,9 +17,10 @@ import {
   BarChart3, 
   TrendingDown, 
   TrendingUp, 
-  CheckCircle2, 
   PackageX,
-  Package
+  Package,
+  UserCheck,
+  CheckCircle2
 } from 'lucide-react';
 
 interface DashboardViewProps {
@@ -33,6 +34,7 @@ interface DashboardViewProps {
   onQuickAdjustStock?: (itemId: string, delta: number, note?: string) => void;
   onExportCsv: () => void;
   onPrintReport: () => void;
+  onOpenEditProfile?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -46,6 +48,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onQuickAdjustStock,
   onExportCsv,
   onPrintReport,
+  onOpenEditProfile,
 }) => {
   // Calculations
   const totalSkuCount = items.length;
@@ -93,15 +96,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-200/70 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 text-xs font-semibold backdrop-blur-md mb-2 border border-amber-300/40">
-              <Sparkles className="w-3.5 h-3.5 text-amber-700 dark:text-amber-300" />
-              <span>Sistem Rekap Mutasi &amp; Stok Pakaian</span>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-200/70 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 text-xs font-semibold backdrop-blur-md border border-amber-300/40">
+                <Sparkles className="w-3.5 h-3.5 text-amber-700 dark:text-amber-300" />
+                <span>Sistem Rekap Mutasi &amp; Stok Pakaian</span>
+              </div>
+              {settings.storeTagline && (
+                <span className="text-xs text-amber-900/70 dark:text-amber-200/70 font-medium">
+                  • {settings.storeTagline}
+                </span>
+              )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-amber-950 dark:text-amber-100">
-              {settings.storeName || 'STZ Fashion'}
-            </h1>
-            <p className="text-amber-900/80 dark:text-amber-200/80 text-sm mt-1 max-w-xl">
-              Pantau pergerakan keluar masuk pakaian secara otomatis, amati grafik kondisi stok, dan antisipasi barang menipis secara tepat waktu.
+
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-amber-950 dark:text-amber-100">
+                {settings.storeName || 'STZ Fashion'}
+              </h1>
+              {onOpenEditProfile && (
+                <button
+                  type="button"
+                  onClick={onOpenEditProfile}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-200/80 hover:bg-amber-300 dark:bg-amber-900/60 dark:hover:bg-amber-800 text-amber-900 dark:text-amber-200 text-xs font-bold border border-amber-300/60 dark:border-amber-800 transition-all cursor-pointer"
+                  title="Edit Profil Toko, Nama & Deskripsi"
+                >
+                  <UserCheck className="w-3.5 h-3.5" />
+                  <span>Edit Profil</span>
+                </button>
+              )}
+            </div>
+
+            <p className="text-amber-900/80 dark:text-amber-200/80 text-sm mt-1.5 max-w-xl leading-relaxed">
+              {settings.description || 'Pantau pergerakan keluar masuk pakaian secara otomatis, amati grafik kondisi stok, dan antisipasi barang menipis secara tepat waktu.'}
             </p>
           </div>
 

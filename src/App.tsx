@@ -49,6 +49,7 @@ export default function App() {
   const [mutationTargetItem, setMutationTargetItem] = useState<ClothingItem | null>(null);
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [settingsModalTab, setSettingsModalTab] = useState<'profile' | 'security' | 'data'>('profile');
 
   // Toast alert state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -205,6 +206,37 @@ export default function App() {
   const handleUpdateSettings = (newSettings: StoreSettings) => {
     setSettings(newSettings);
     saveStoredSettings(newSettings);
+    setToastMessage('Profil dan pengaturan berhasil disimpan.');
+  };
+
+  const handleClearAllStock = () => {
+    setItems([]);
+    saveStoredItems([]);
+    setToastMessage('Semua stok pakaian telah berhasil dihapus (0 data).');
+  };
+
+  const handleClearAllTransactions = () => {
+    setTransactions([]);
+    saveStoredTransactions([]);
+    setToastMessage('Seluruh riwayat mutasi barang telah berhasil dihapus (0 data).');
+  };
+
+  const handleClearAllData = () => {
+    setItems([]);
+    setTransactions([]);
+    saveStoredItems([]);
+    saveStoredTransactions([]);
+    setToastMessage('Seluruh data stok pakaian dan riwayat mutasi telah dikosongkan total.');
+  };
+
+  const handleOpenEditProfileModal = () => {
+    setSettingsModalTab('profile');
+    setIsSettingsModalOpen(true);
+  };
+
+  const handleOpenSettingsModal = (tab: 'profile' | 'security' | 'data' = 'data') => {
+    setSettingsModalTab(tab);
+    setIsSettingsModalOpen(true);
   };
 
   const handleDataRestored = (
@@ -283,7 +315,8 @@ export default function App() {
           setMutationTargetItem(null);
           setIsMutationModalOpen(true);
         }}
-        onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
+        onOpenSettingsModal={() => handleOpenSettingsModal('data')}
+        onOpenEditProfileModal={handleOpenEditProfileModal}
         onLockAccess={handleLockSession}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
@@ -307,6 +340,7 @@ export default function App() {
             onQuickAdjustStock={handleQuickAdjustStock}
             onExportCsv={handleExportCsv}
             onPrintReport={handlePrintReport}
+            onOpenEditProfile={handleOpenEditProfileModal}
           />
         )}
 
@@ -348,17 +382,24 @@ export default function App() {
           <p>
             &copy; {new Date().getFullYear()} <strong>STZ Fashion</strong> · Rekap Stok Pribadi ({settings.ownerEmail || 'kesanramadhan07@gmail.com'}).
           </p>
-          <div className="flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-3 text-xs">
             <button
-              onClick={() => setIsSettingsModalOpen(true)}
-              className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+              onClick={handleOpenEditProfileModal}
+              className="hover:text-amber-600 dark:hover:text-amber-400 font-medium transition-colors cursor-pointer"
             >
-              Pengaturan &amp; Cadangan
+              Edit Profil Toko
+            </button>
+            <span>·</span>
+            <button
+              onClick={() => handleOpenSettingsModal('data')}
+              className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer"
+            >
+              Pengaturan &amp; Hapus Data
             </button>
             <span>·</span>
             <span className="font-mono">{items.length} Model Pakaian</span>
             <span>·</span>
-            <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">Akses Pribadi Terkunci</span>
+            <span className="font-mono text-amber-700 dark:text-amber-400 font-semibold">Akses Pribadi Terkunci</span>
           </div>
         </div>
       </footer>
@@ -393,6 +434,10 @@ export default function App() {
         items={items}
         transactions={transactions}
         onDataRestored={handleDataRestored}
+        onClearAllStock={handleClearAllStock}
+        onClearAllTransactions={handleClearAllTransactions}
+        onClearAllData={handleClearAllData}
+        initialTab={settingsModalTab}
       />
 
       {/* Dedicated Print Sheet for PDF Stock Audit Report */}

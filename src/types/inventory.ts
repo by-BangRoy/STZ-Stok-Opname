@@ -31,6 +31,7 @@ export interface StockTransaction {
 export interface StoreSettings {
   storeName: string;
   storeTagline?: string;
+  description?: string;
   ownerEmail: string;
   phone?: string;
   address?: string;
@@ -38,3 +39,4 @@ export interface StoreSettings {
   isPinRequired?: boolean;
   currency?: string;
 }
+

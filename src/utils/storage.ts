@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
 export const DEFAULT_SETTINGS: StoreSettings = {
   storeName: 'STZ Fashion',
   storeTagline: 'Sistem Rekap Mutasi & Inventaris Pakaian',
+  description: 'Aplikasi pencatatan stok pakaian, mutasi barang keluar masuk otomatis, dan rekap inventaris.',
   ownerEmail: 'kesanramadhan07@gmail.com',
   phone: '0812-3456-7890',
   address: 'Sentra Mode Fashion & Lifestyle, Jakarta',

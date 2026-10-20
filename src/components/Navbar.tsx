@@ -10,7 +10,8 @@ import {
   Lock, 
   Sun, 
   Moon,
-  Sparkles
+  Sparkles,
+  UserCheck
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -18,6 +19,7 @@ interface NavbarProps {
   setActiveTab: (tab: 'dashboard' | 'inventory' | 'recap') => void;
   onOpenMutationModal: () => void;
   onOpenSettingsModal: () => void;
+  onOpenEditProfileModal?: () => void;
   onLockAccess: () => void;
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
@@ -29,6 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   onOpenMutationModal,
   onOpenSettingsModal,
+  onOpenEditProfileModal,
   onLockAccess,
   darkMode,
   setDarkMode,
@@ -103,6 +106,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-2">
+            {/* Edit Profil Button */}
+            <button
+              type="button"
+              onClick={onOpenEditProfileModal || onOpenSettingsModal}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-200 text-xs font-bold border border-amber-300/70 dark:border-amber-800/60 transition-all cursor-pointer shadow-2xs"
+              title="Edit Profil Toko, Nama, Deskripsi & Kontak"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+              <span className="hidden sm:inline">Edit Profil</span>
+            </button>
+
             {/* Quick Mutation Button */}
             <button
               type="button"
@@ -129,7 +143,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={onOpenSettingsModal}
               className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Pengaturan Toko & Cadangan Data"
+              title="Pengaturan Toko, Keamanan & Hapus Data"
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -177,6 +191,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <ArrowLeftRight className="w-4 h-4" />
             <span>Rekap</span>
+          </button>
+          <button
+            type="button"
+            onClick={onOpenEditProfileModal || onOpenSettingsModal}
+            className="flex flex-col items-center gap-0.5 py-1 text-[11px] font-medium text-amber-700 dark:text-amber-400"
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>Profil</span>
           </button>
         </div>
       </div>
