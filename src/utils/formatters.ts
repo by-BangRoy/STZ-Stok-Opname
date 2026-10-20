@@ -94,7 +94,8 @@ export function exportRecapToCsv(transactions: StockTransaction[], storeName = '
     'Nama Pakaian',
     'Warna',
     'Ukuran',
-    'Jumlah (Qty)',
+    'Jumlah (Pcs)',
+    'Satuan Lusin',
     'Stok Sebelumnya',
     'Stok Akhir',
     'Pihak Terkait / Customer / Supplier',
@@ -105,6 +106,8 @@ export function exportRecapToCsv(transactions: StockTransaction[], storeName = '
     const typeLabel =
       tx.type === 'IN' ? 'Barang Masuk (IN)' : tx.type === 'OUT' ? 'Barang Keluar (OUT)' : 'Koreksi Stok (ADJUST)';
 
+    const dozenStr = (tx.quantity / 12).toFixed(1).replace('.', ',');
+
     return [
       index + 1,
       `"${formatDateTime(tx.timestamp)}"`,
@@ -113,6 +116,7 @@ export function exportRecapToCsv(transactions: StockTransaction[], storeName = '
       `"${tx.color.replace(/"/g, '""')}"`,
       `"${tx.size.replace(/"/g, '""')}"`,
       tx.quantity,
+      `"${dozenStr} Lsn"`,
       tx.previousStock,
       tx.newStock,
       `"${(tx.recipientOrSupplier || '').replace(/"/g, '""')}"`,

@@ -430,6 +430,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       >
                         {isOut ? `-${tx.quantity}` : `+${tx.quantity}`} Pcs
                       </div>
+                      <div className="text-[10px] text-amber-700 dark:text-amber-400 font-mono font-semibold">
+                        ≈ {(tx.quantity / 12).toFixed(1).replace('.', ',')} Lsn
+                      </div>
                       <div className="text-[10px] text-slate-400 font-mono">
                         {formatDateTime(tx.timestamp)}
                       </div>

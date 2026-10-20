@@ -8,7 +8,9 @@ import {
   SlidersHorizontal, 
   AlertCircle, 
   CheckCircle2,
-  Package
+  Package,
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
 
 interface StockMutationModalProps {
@@ -28,7 +30,11 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
 }) => {
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const [type, setType] = useState<'IN' | 'OUT' | 'ADJUSTMENT'>('OUT');
-  const [quantity, setQuantity] = useState<string>('1');
+  
+  // Kolom Lusin (kosongan saat mulai agar bisa diinput manual) dan Kolom Pcs
+  const [quantityLusin, setQuantityLusin] = useState<string>('');
+  const [quantityPcs, setQuantityPcs] = useState<string>('');
+  
   const [note, setNote] = useState('');
   const [party, setParty] = useState('');
   const [error, setError] = useState('');
@@ -39,7 +45,9 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
     } else if (items.length > 0 && !selectedItemId) {
       setSelectedItemId(items[0].id);
     }
-    setQuantity('1');
+    // Kolom satuan lusin dan pcs kosongan saat buka modal
+    setQuantityLusin('');
+    setQuantityPcs('');
     setNote('');
     setParty('');
     setError('');
@@ -50,8 +58,58 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
   const currentItem = items.find((it) => it.id === selectedItemId);
   const currentStock = currentItem ? currentItem.currentStock : 0;
 
+  // Handle manual input in Kolom Satuan Lusin -> Otomatis update Kolom Pcs
+  const handleLusinChange = (valStr: string) => {
+    // izinkan angka dan titik/koma desimal
+    const cleaned = valStr.replace(/[^0-9.,]/g, '').replace(',', '.');
+    setQuantityLusin(cleaned);
+
+    if (cleaned === '' || cleaned === '.') {
+      setQuantityPcs('');
+      return;
+    }
+
+    const numericLusin = parseFloat(cleaned);
+    if (!isNaN(numericLusin)) {
+      // 1 Lusin = 12 Pcs
+      const calculatedPcs = Math.round(numericLusin * 12);
+      setQuantityPcs(String(calculatedPcs));
+    }
+  };
+
+  // Handle manual input in Kolom Satuan Pcs -> Otomatis update Kolom Lusin
+  const handlePcsChange = (valStr: string) => {
+    const cleaned = valStr.replace(/[^0-9]/g, '');
+    setQuantityPcs(cleaned);
+
+    if (cleaned === '') {
+      setQuantityLusin('');
+      return;
+    }
+
+    const numericPcs = parseInt(cleaned, 10);
+    if (!isNaN(numericPcs)) {
+      const calculatedLusin = numericPcs / 12;
+      const formatted = Number.isInteger(calculatedLusin)
+        ? String(calculatedLusin)
+        : String(calculatedLusin.toFixed(2)).replace(/\.?0+$/, '');
+      setQuantityLusin(formatted);
+    }
+  };
+
+  // Preset button shortcuts
+  const handleSetLusinPreset = (lusinAmount: number) => {
+    setQuantityLusin(String(lusinAmount));
+    setQuantityPcs(String(lusinAmount * 12));
+  };
+
+  const handleClear = () => {
+    setQuantityLusin('');
+    setQuantityPcs('');
+  };
+
   // Compute preview of new stock
-  const numericQty = quantity === '' ? 0 : parseInt(quantity, 10) || 0;
+  const numericQty = quantityPcs === '' ? 0 : parseInt(quantityPcs, 10) || 0;
   let computedNewStock = currentStock;
   if (type === 'IN') {
     computedNewStock = currentStock + numericQty;
@@ -68,14 +126,16 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
       return;
     }
 
-    const qty = Number(quantity);
+    const qty = Number(quantityPcs);
     if (qty <= 0 && type !== 'ADJUSTMENT') {
-      setError('Jumlah mutasi harus lebih dari 0!');
+      setError('Masukkan jumlah mutasi (Lusin atau Pcs) lebih dari 0!');
       return;
     }
 
     if (type === 'OUT' && qty > currentStock) {
-      setError(`Jumlah barang keluar (${qty} Pcs) melebihi stok yang tersedia (${currentStock} Pcs)!`);
+      const lusinStr = (qty / 12).toFixed(1).replace('.', ',');
+      const stockLusinStr = (currentStock / 12).toFixed(1).replace('.', ',');
+      setError(`Jumlah barang keluar (${qty} Pcs / ${lusinStr} Lusin) melebihi stok yang tersedia (${currentStock} Pcs / ${stockLusinStr} Lusin)!`);
       return;
     }
 
@@ -92,6 +152,7 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
       size: currentItem.size,
       type,
       quantity: diffQty,
+      quantityLusin: Number((diffQty / 12).toFixed(2)),
       previousStock: currentStock,
       newStock: computedNewStock,
       note: note.trim() || (type === 'IN' ? 'Barang Masuk Restock' : type === 'OUT' ? 'Penjualan / Barang Keluar' : 'Audit Opname Fisik'),
@@ -123,7 +184,7 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
                 Catat Mutasi Stok Pakaian
               </h3>
               <p className="text-xs text-slate-500">
-                Pencatatan barang masuk, keluar, atau koreksi opname
+                Input manual satuan Lusin atau Pcs dengan update otomatis real-time
               </p>
             </div>
           </div>
@@ -204,7 +265,7 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
             >
               {items.map((it) => (
                 <option key={it.id} value={it.id}>
-                  {it.name} ({it.color} - Size {it.size}) · Sisa: {it.currentStock} Pcs
+                  {it.name} ({it.color} - Size {it.size}) · Sisa: {it.currentStock} Pcs (≈ {(it.currentStock / 12).toFixed(1).replace('.', ',')} Lsn)
                 </option>
               ))}
             </select>
@@ -217,6 +278,9 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
                 <div className="text-[11px] text-slate-500">Stok Saat Ini</div>
                 <div className="text-base font-bold font-mono text-slate-800 dark:text-slate-200">
                   {currentStock} Pcs
+                  <span className="text-xs font-normal text-slate-400 ml-1">
+                    (≈ {(currentStock / 12).toFixed(1).replace('.', ',')} Lusin)
+                  </span>
                 </div>
               </div>
               <div className="text-slate-400 font-mono text-sm">&rarr;</div>
@@ -232,29 +296,113 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
                   }`}
                 >
                   {computedNewStock} Pcs
+                  <span className="text-xs font-normal opacity-80 ml-1">
+                    (≈ {(computedNewStock / 12).toFixed(1).replace('.', ',')} Lsn)
+                  </span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Quantity */}
-          <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              {type === 'ADJUSTMENT' ? 'Jumlah Stok Fisik Sebenarnya (Hasil Opname)' : 'Jumlah Mutasi (Pcs)'}
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="Ketik jumlah..."
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono font-bold text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-slate-400 placeholder:font-normal"
-            />
-            {numericQty > 0 && (
-              <div className="text-[10px] text-slate-400 font-mono mt-1">
-                ≈ {(numericQty / 12).toFixed(1).replace('.', ',')} Lusin ({Math.floor(numericQty / 12)} Lsn {numericQty % 12 > 0 ? `${numericQty % 12} Pcs` : ''})
+          {/* Dual Inputs: Kolom Satuan Lusin (Kosongan & Manual) & Kolom Pcs (Sinkron Otomatis) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block font-bold text-slate-800 dark:text-slate-200">
+                {type === 'ADJUSTMENT' ? 'Jumlah Stok Fisik (Opname)' : 'Jumlah Mutasi Stok'}
+              </label>
+              <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-emerald-600" />
+                <span>Otomatis Sinkron: 1 Lusin = 12 Pcs</span>
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Kolom Satuan Lusin Kosongan - Bisa Input Manual */}
+              <div className="p-3 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700/80 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-bold text-amber-950 dark:text-amber-200 flex items-center gap-1.5">
+                    <span>Kolom Satuan Lusin</span>
+                    <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-amber-200/90 dark:bg-amber-900/80 text-amber-900 dark:text-amber-100">
+                      Input Manual
+                    </span>
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-amber-800 dark:text-amber-300">
+                    Lusin
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={quantityLusin}
+                  onChange={(e) => handleLusinChange(e.target.value)}
+                  placeholder="Ketik Lusin (misal 1, 2, 0.5)..."
+                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 font-mono font-bold text-base text-amber-900 dark:text-amber-100 focus:outline-none focus:border-amber-500 transition-all placeholder:text-slate-400 placeholder:font-normal placeholder:text-xs"
+                />
+                <div className="text-[10px] text-amber-800/80 dark:text-amber-400 mt-1 flex items-center justify-between">
+                  <span>
+                    {quantityLusin !== '' && !isNaN(parseFloat(quantityLusin))
+                      ? `≈ ${Math.round(parseFloat(quantityLusin) * 12)} Pcs`
+                      : 'Bisa angka bulat / desimal'}
+                  </span>
+                  <span className="font-mono text-[9px]">1 Lsn = 12 Pcs</span>
+                </div>
               </div>
-            )}
+
+              {/* Kolom Jumlah Pcs - Otomatis Terupdate & Bisa Input Manual */}
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <span>Jumlah Satuan (Pcs)</span>
+                    <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                      Biji / Pcs
+                    </span>
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-slate-500">
+                    Pcs
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={quantityPcs}
+                  onChange={(e) => handlePcsChange(e.target.value)}
+                  placeholder="Ketik Pcs (misal 12, 24)..."
+                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono font-bold text-base text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-all placeholder:text-slate-400 placeholder:font-normal placeholder:text-xs"
+                />
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
+                  <span>
+                    {numericQty > 0
+                      ? `≈ ${(numericQty / 12).toFixed(1).replace('.', ',')} Lusin (${Math.floor(numericQty / 12)} Lsn ${numericQty % 12 > 0 ? `${numericQty % 12} Pcs` : ''})`
+                      : 'Otomatis update dari lusin'}
+                  </span>
+                  <span className="font-mono text-[9px]">Pcs</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Lusin Presets */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[10px] text-slate-400 font-medium mr-1">Tombol Cepat:</span>
+              {[1, 2, 5, 10].map((lsn) => (
+                <button
+                  key={lsn}
+                  type="button"
+                  onClick={() => handleSetLusinPreset(lsn)}
+                  className="px-2.5 py-1 rounded-lg bg-amber-100/80 hover:bg-amber-200 text-amber-950 dark:bg-amber-950/70 dark:hover:bg-amber-900 dark:text-amber-200 text-[10px] font-mono font-bold transition-colors cursor-pointer border border-amber-300/60 dark:border-amber-800"
+                >
+                  +{lsn} Lsn ({lsn * 12} Pcs)
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={handleClear}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-400 text-[10px] font-semibold transition-colors cursor-pointer ml-auto"
+                title="Kosongkan kolom lusin dan pcs"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Kosongkan</span>
+              </button>
+            </div>
           </div>
 
           {/* Recipient or Supplier */}
@@ -280,7 +428,7 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
               rows={2}
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Contoh: Pesanan offline, barang rusak, promo paket hemat..."
+              placeholder="Contoh: Pesanan offline, barang masuk lusinan, promo paket hemat..."
               className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-none"
             />
           </div>
@@ -296,9 +444,10 @@ export const StockMutationModal: React.FC<StockMutationModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md shadow-emerald-600/30 transition-all cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-1.5"
             >
-              Simpan Mutasi
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Simpan &amp; Update Stok</span>
             </button>
           </div>
         </form>

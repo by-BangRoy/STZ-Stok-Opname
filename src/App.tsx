@@ -496,10 +496,12 @@ export default function App() {
         {activeTab === 'recap' && (
           <RecapTransactionsView
             transactions={transactions}
+            items={items}
             onOpenMutationModal={() => {
               setMutationTargetItem(null);
               setIsMutationModalOpen(true);
             }}
+            onSaveMutation={handleSaveMutation}
             onExportCsv={handleExportCsv}
             onPrintReport={handlePrintReport}
           />

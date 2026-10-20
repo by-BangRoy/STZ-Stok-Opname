@@ -45,6 +45,7 @@ function sanitizeTransaction(tx: StockTransaction, ownerEmail?: string): Record<
     timestamp: String(tx.timestamp || new Date().toISOString()),
   };
 
+  if (tx.quantityLusin !== undefined) clean.quantityLusin = Number(tx.quantityLusin) || 0;
   if (tx.color !== undefined) clean.color = String(tx.color);
   if (tx.size !== undefined) clean.size = String(tx.size);
   if (tx.note !== undefined && tx.note !== '') clean.note = String(tx.note);
@@ -128,6 +129,7 @@ export function subscribeOnlineTransactions(
           size: data.size || '',
           type: data.type || 'IN',
           quantity: Number(data.quantity) || 0,
+          quantityLusin: data.quantityLusin !== undefined ? Number(data.quantityLusin) : Number(((Number(data.quantity) || 0) / 12).toFixed(2)),
           previousStock: Number(data.previousStock) || 0,
           newStock: Number(data.newStock) || 0,
           note: data.note || '',

@@ -21,6 +21,7 @@ export interface StockTransaction {
   size: string;
   type: 'IN' | 'OUT' | 'ADJUSTMENT';
   quantity: number;
+  quantityLusin?: number;
   previousStock: number;
   newStock: number;
   note: string;

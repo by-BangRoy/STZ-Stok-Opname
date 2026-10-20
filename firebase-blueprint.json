@@ -92,7 +92,11 @@
         },
         "quantity": {
           "type": "number",
-          "description": "Quantity changed"
+          "description": "Quantity changed in pieces"
+        },
+        "quantityLusin": {
+          "type": "number",
+          "description": "Quantity changed in dozens (lusin)"
         },
         "previousStock": {
           "type": "number",

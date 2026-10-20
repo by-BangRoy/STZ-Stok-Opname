@@ -46,12 +46,13 @@ service cloud.firestore {
 
     function isValidTransactionData(data) {
       return data.keys().hasAll(['id', 'itemId', 'itemName', 'type', 'quantity', 'previousStock', 'newStock', 'timestamp']) &&
-        data.keys().hasOnly(['id', 'itemId', 'itemName', 'color', 'size', 'type', 'quantity', 'previousStock', 'newStock', 'note', 'recipientOrSupplier', 'timestamp', 'ownerEmail']) &&
+        data.keys().hasOnly(['id', 'itemId', 'itemName', 'color', 'size', 'type', 'quantity', 'quantityLusin', 'previousStock', 'newStock', 'note', 'recipientOrSupplier', 'timestamp', 'ownerEmail']) &&
         isValidId(data.id) &&
         isValidId(data.itemId) &&
         data.itemName is string && data.itemName.size() <= 200 &&
         (data.type in ['IN', 'OUT', 'ADJUSTMENT']) &&
         data.quantity is number &&
+        (!('quantityLusin' in data) || data.quantityLusin is number) &&
         data.previousStock is number &&
         data.newStock is number &&
         data.timestamp is string && data.timestamp.size() <= 50 &&
